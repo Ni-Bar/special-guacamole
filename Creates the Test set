@@ -1,0 +1,122 @@
+#Needed Libarys
+#library(flowCore)
+#library(flowAI)
+#library(ggcyto)
+
+#Insert up 14 Test samples to get up to 14 Test set
+
+#Dont use any dots (.) in the FACS file names!!(It will express E.coli just as E)
+#Which data (folder) to read?
+this <- "E:/BA/V2/EX2 Cocultures/Raw_data/Cocultures t24 FACS/U"       #e.g. C:/User/Documents/FACS_files
+myfiles <- list.files(path= this, pattern=".fcs$")
+#set working directory to the place were your uncompensated data is. 
+setwd(this)
+
+#Names of the Bactria in file, use myfiles to see the order of your files. 
+myfiles
+
+
+#Where should be the data saved? The Folder will be created if not existing.
+# an extra / at the and is needed! Else the name of the file will be combined with the name of the folder!
+Folder      <- "E:/BA/V2/EX2 Cocultures/Comp_data/Cocultures_Test/t24/U/"
+
+Filename1   <- "U1"            
+Filename2   <- "U2"
+Filename3   <- "U3"
+Filename4   <- "U4"
+Filename5   <- "U5"
+Filename6   <- "U6"
+Filename7   <- "U7"
+Filename8   <- ""
+Filename9   <- ""
+Filename10  <- ""
+Filename11  <- ""
+Filename12  <- ""
+Filename13  <- ""
+Filename14  <- ""
+n           <- 7
+Ending      <- "_wo_FL2_FL5"
+suffix <- ".csv" # Expresses as .csv frame
+
+#Select up to 10 FL ,Leave empty that you dont need. (e.g BS and Ecoli FL2 and FL5)
+FL_channel1     <- "FL2.A"
+FL_channel2     <- "FL2.H"
+FL_channel3     <- "FL2.W"
+FL_channel4     <- "FL5.A"
+FL_channel5     <- "FL5.H"
+FL_channel6     <- "FL5.W"
+FL_channel7     <- ""
+FL_channel8     <- ""
+FL_channel9     <- ""
+FL_channel10    <- ""
+
+#Name the Bacteria
+
+Bac1  <-  "UNKNOWN"           # 1
+Bac2  <-  "UNKNOWN"           # 2
+Bac3  <-  "UNKNOWN"           # 3
+Bac4  <-  "UNKNOWN"           # 4
+Bac5  <-  "UNKNOWN"           # 5
+Bac6  <-  "UNKNOWN"           # 6
+Bac7  <-  "UNKNOWN"           # 7
+Bac8  <-  "UNKNOWN"           # 8
+Bac9  <-  "UNKNOWN"           # 9
+Bac10 <-  "UNKNOWN"           # 10
+Bac11 <-  "UNKNOWN"           # 11
+Bac12 <-  "UNKNOWN"           # 12
+Bac13 <-  "UNKNOWN"           # 13
+Bac14 <-  "UNKNOWN"           # 14
+#-------------------------------------------------------------------------------
+#Read the files you want to compensate!! Dont use any dots (.) in the FACS file names!!(It will express E.coli just as E)
+myfiles <- list.files(path= this, pattern=".fcs$")
+fs <- flowCore::read.flowSet(myfiles, path= this)
+
+#Apply spillover
+fs_comp <- fsApply(fs,function(frame){
+  #extract compensation matrix from keywords
+  comp <- keyword(frame)$`SPILL`
+  new_frame <- compensate(frame,comp)
+  new_frame
+})
+
+# Clean all the false data, set fcs_highQ = true to get the .fcs file with the high quality compensated data
+#fs_comp <- flow_auto_qc(
+#  fs_comp,
+#  html_report = FALSE,
+#  mini_report = FALSE,
+#  fcs_highQ = FALSE,
+#  fcs_QC =FALSE,
+#  folder_results = FALSE,
+# second_fractionFR = 1)
+
+colClean <- function(x){ colnames(x) <- gsub("\\.", "_", colnames(x)); x }
+delFL <- function(x) x[!(names(x) %in% c(FL_channel1, FL_channel2, FL_channel3, FL_channel4, FL_channel5, FL_channel6, FL_channel7, FL_channel8, FL_channel9, FL_channel10))]
+Filename <- c(Filename1, Filename2,Filename3,Filename4,Filename5,Filename6,Filename7,Filename8,Filename9,Filename10,Filename11,Filename12,Filename13,Filename14)    
+Bac <- c(Bac1,Bac2,Bac3,Bac4,Bac5,Bac6,Bac7,Bac8,Bac9,Bac10,Bac11,Bac12,Bac13,Bac14)
+#fs_comp <- lapply(fs_comp, function(x) x[!(names(x) %in% c(FL_channel1, FL_channel2, FL_channel3, FL_channel4, FL_channel5, FL_channel6, FL_channel7, FL_channel8, FL_channel9, FL_channel10))])
+
+DF <- function(x,i){ 
+  for (i in 1:n){
+    A<- x[[i]];
+    A <- exprs(A);
+    A <-  as.data.frame(A);
+    LA <- length(A[[i]]);
+    name <-rep(Bac[i], (paste(LA)));
+    name <-as.factor(name);
+    A <- cbind(A, name);
+    A <- A[,-c(1)];
+    A <- na.omit(A);
+    df1 <- data.frame(A);
+    df1 <- delFL(df1)
+    df1 <- colClean (df1);
+    df1 <- data.frame(df1);
+   
+    write.csv(df1,paste(Folder,paste(Filename[i]),Ending, suffix, sep="",collapse = NULL, recycle0 = FALSE ), row.names = FALSE)
+         }
+}
+dir.create(Folder)
+setwd(Folder)
+df<- DF(fs_comp)
+
+rm(list = ls())
+print("DONE")
