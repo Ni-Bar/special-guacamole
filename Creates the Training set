@@ -1,0 +1,170 @@
+#Needed Libarys
+#installation needed once per R studio Project
+#if (!require("BiocManager", quietly = TRUE))
+#install.packages("BiocManager")
+#BiocManager::install("flowCore")
+
+#Activation needed once per R studio session
+library(ggcyto)
+library(flowCore)
+library(flowAI)
+
+
+#Insert up 14 Training samples to get up to 14 Training sets and one with the first 30k Data points out of the single Data frames
+
+#Dont use any dots (.) in the FACS file names!!(It will express E.coli just as E)
+#Which data (folder) to read?(R uses / insted of Windows /!)  eg. "E:/BA/V2/EX2 Cocultures/Raw_data
+this <- "E:/BA/V2/EX1 ACC and %/Raw_data/test"       #e.g. C:/User/Documents/FACS_files
+
+#Read the files you want to compensate!! Dont use any dots (.) in the FACS file names!!(It will express E.coli just as E)
+myfiles <- list.files(path= this, pattern=".fcs$")
+#set working directory to the place were your uncompensated data is. 
+setwd(this)
+
+#use myfiles to see the order of your files
+myfiles
+
+
+#Where should be the data saved? The Folder will be created. eg. E:/BA/V2/EX2 Cocultures/Comp_data/Cocultures_Training_Comp/ ( / at the end is needed!)
+Folder      <- "E:/BA/V2/EX1 ACC and %/Comp_data/"   
+#Name all the files you want, leave names emty you dont need
+Filename1   <- "BSmKate"            
+Filename2   <- "BSUNL"
+Filename3   <- "ECGFP"
+Filename4   <- "ECUNL"
+Filename5   <- ""
+Filename6   <- ""
+Filename7   <- ""
+Filename8   <- ""
+Filename9   <- ""
+Filename10  <- ""
+Filename11  <- ""
+Filename12  <- ""
+Filename13  <- ""
+Filename14  <- ""
+n           <- 4         #number of files
+TrainingSet <- "" #All tainingsets together
+Ending      <- "_wo_FL2_FL5"
+suffix <- ".csv" # Expresses as .csv frame
+
+#Names of the Bactria #e.g Bacillus
+Bac1  <-  "BS"         # 1
+Bac2  <-  "BS"         # 2
+Bac3  <-  "EC"         # 3
+Bac4  <-  "EC"         # 4
+Bac5  <-  ""           # 5
+Bac6  <-  ""           # 6
+Bac7  <-  ""           # 7
+Bac8  <-  ""           # 8
+Bac9  <-  ""           # 9
+Bac10 <-  ""           # 10
+Bac11 <-  ""           # 11
+Bac12 <-  ""           # 12
+Bac13 <-  ""           # 13
+Bac14 <-  ""           # 14
+
+
+#Select up to 10 FL ,Leave empty that you dont need. (e.g BS and Ecoli FL2.A... and FL5.A...)
+FL_channel1     <- "FL2.A"
+FL_channel2     <- "FL2.H"
+FL_channel3     <- "FL2.W"
+FL_channel4     <- "FL5.A"
+FL_channel5     <- "FL5.H"
+FL_channel6     <- "FL5.W"
+FL_channel7     <- ""
+FL_channel8     <- ""
+FL_channel9     <- ""
+FL_channel10    <- ""
+
+#Read the files you want to compensate!! Dont use any dots (.) in the FACS file names!!(It will express E.coli just as E)
+fs <- flowCore::read.flowSet(myfiles, path= this)
+#Shows the spillover matrix of the first file 
+#spillover(fs[[1]])
+
+#Apply spillover
+fs_comp <- fsApply(fs,function(frame){
+  #extract compensation matrix from keywords
+  comp <- keyword(frame)$`SPILL`
+  new_frame <- compensate(frame,comp)
+  new_frame
+})
+# Clean all the false data, set fcs_highQ = true to get the .fcs file with the high quality compensated data
+# Files created by Cellsorters etc. sometimes can be cleaned better with the following.
+# fs_comp <- flow_auto_qc(
+#  fs_comp,
+#  html_report = FALSE,
+#  mini_report = FALSE,
+#  fcs_highQ = FALSE,
+#  fcs_QC =FALSE,
+#  folder_results = FALSE,
+# second_fractionFR = 1)
+
+# Creates a function to replace all . with _. Julia doesnt like . in names. care if this says "//." cange it back to "\\."!
+colClean <- function(x){ colnames(x) <- gsub("\\.", "_", colnames(x)); x } 
+# Creates the function to delete the FL channels   
+delFL <- function(x) x[!(names(x) %in% c(FL_channel1, FL_channel2, FL_channel3, FL_channel4, FL_channel5, FL_channel6, FL_channel7, FL_channel8, FL_channel9, FL_channel10))]
+
+#needed for the following function 
+Filename <- c(Filename1, Filename2,Filename3,Filename4,Filename5,Filename6,Filename7,Filename8,Filename9,Filename10,Filename11,Filename12,Filename13,Filename14)    
+Bac <- c(Bac1,Bac2,Bac3,Bac4,Bac5,Bac6,Bac7,Bac8,Bac9,Bac10,Bac11,Bac12,Bac13,Bac14)
+
+DF <- function(x,i){ 
+  for (i in 1:n){
+    A<- x[[i]];
+    A <- exprs(A);
+    A <-  as.data.frame(A);
+    LA <- length(A[[i]]);
+    name <-rep(Bac[i], (paste(LA)));
+    name <-as.factor(name);
+    A <- cbind(A, name);
+    A <- A[,-c(1)];
+    A <- na.omit(A);
+    df1 <- data.frame(A);
+    df1 <- delFL(df1)
+    df1 <- colClean (df1);
+    df1 <- data.frame(df1);
+    write.csv(df1,paste(Folder,paste(Filename[i]),Ending, suffix, sep="",collapse = NULL, recycle0 = FALSE ), row.names = FALSE)
+  }
+}
+dir.create(Folder)
+try(DF(fs_comp), silent = TRUE)
+
+#Creating one big TrainingSet
+
+setwd(Folder)
+myfilesTrain <-list.files(path= Folder, pattern = ".csv")
+
+CSVsTrain <- lapply(myfilesTrain, read.csv)
+           
+try(dfTrain1 <- CSVsTrain[[1]], silent = TRUE)
+try(dfTrain2 <- CSVsTrain[[2]], silent = TRUE)
+try(dfTrain3 <- CSVsTrain[[3]], silent = TRUE)
+try(dfTrain4 <- CSVsTrain[[4]], silent = TRUE)
+try(dfTrain5 <- CSVsTrain[[5]], silent = TRUE)
+try(dfTrain6 <- CSVsTrain[[6]], silent = TRUE)
+try(dfTrain7 <- CSVsTrain[[7]], silent = TRUE)
+try(dfTrain8 <- CSVsTrain[[8]], silent = TRUE)
+try(dfTrain9 <- CSVsTrain[[9]], silent = TRUE)
+try(dfTrain10 <- CSVsTrain[[10]], silent = TRUE)
+try(dfTrain11 <- CSVsTrain[[11]], silent = TRUE)
+try(dfTrain12 <- CSVsTrain[[12]], silent = TRUE)
+try(dfTrain13 <- CSVsTrain[[13]], silent = TRUE)
+try(dfTrain14 <- CSVsTrain[[14]], silent = TRUE)
+
+try(dfallTrain <- rbind(dfTrain1[1:30000,], dfTrain2[1:30000,]), silent = TRUE)
+try(dfallTrain <- rbind(dfTrain1[1:30000,], dfTrain2[1:30000,],dfTrain3[1:30000,]), silent = TRUE)
+try(dfallTrain <- rbind(dfTrain1[1:30000,], dfTrain2[1:30000,],dfTrain3[1:30000,],dfTrain4[1:30000,]), silent = TRUE)
+try(dfallTrain <- rbind(dfTrain1[1:30000,], dfTrain2[1:30000,],dfTrain3[1:30000,],dfTrain4[1:30000,],dfTrain5[1:30000,]), silent = TRUE)
+try(dfallTrain <- rbind(dfTrain1[1:30000,], dfTrain2[1:30000,],dfTrain3[1:30000,],dfTrain4[1:30000,],dfTrain5[1:30000,],dfTrain6[1:30000,]), silent = TRUE)
+try(dfallTrain <- rbind(dfTrain1[1:30000,], dfTrain2[1:30000,],dfTrain3[1:30000,],dfTrain4[1:30000,],dfTrain5[1:30000,],dfTrain6[1:30000,],dfTrain7[1:30000,]), silent = TRUE)
+try(dfallTrain <- rbind(dfTrain1[1:30000,], dfTrain2[1:30000,],dfTrain3[1:30000,],dfTrain4[1:30000,],dfTrain5[1:30000,],dfTrain6[1:30000,],dfTrain7[1:30000,],dfTrain8[1:30000,]), silent = TRUE)
+try(dfallTrain <- rbind(dfTrain1[1:30000,], dfTrain2[1:30000,],dfTrain3[1:30000,],dfTrain4[1:30000,],dfTrain5[1:30000,],dfTrain6[1:30000,],dfTrain7[1:30000,],dfTrain8[1:30000,],dfTrain9[1:30000,]), silent = TRUE)
+try(dfallTrain <- rbind(dfTrain1[1:30000,], dfTrain2[1:30000,],dfTrain3[1:30000,],dfTrain4[1:30000,],dfTrain5[1:30000,],dfTrain6[1:30000,],dfTrain7[1:30000,],dfTrain8[1:30000,],dfTrain9[1:30000,],dfTrain10[1:30000,]), silent = TRUE)
+try(dfallTrain <- rbind(dfTrain1[1:30000,], dfTrain2[1:30000,],dfTrain3[1:30000,],dfTrain4[1:30000,],dfTrain5[1:30000,],dfTrain6[1:30000,],dfTrain7[1:30000,],dfTrain8[1:30000,],dfTrain9[1:30000,],dfTrain10[1:30000,],dfTrain11[1:30000,]), silent = TRUE)
+try(dfallTrain <- rbind(dfTrain1[1:30000,], dfTrain2[1:30000,],dfTrain3[1:30000,],dfTrain4[1:30000,],dfTrain5[1:30000,],dfTrain6[1:30000,],dfTrain7[1:30000,],dfTrain8[1:30000,],dfTrain9[1:30000,],dfTrain10[1:30000,],dfTrain11[1:30000,],dfTrain12[1:30000,]), silent = TRUE)
+try(dfallTrain <- rbind(dfTrain1[1:30000,], dfTrain2[1:30000,],dfTrain3[1:30000,],dfTrain4[1:30000,],dfTrain5[1:30000,],dfTrain6[1:30000,],dfTrain7[1:30000,],dfTrain8[1:30000,],dfTrain9[1:30000,],dfTrain10[1:30000,],dfTrain11[1:30000,],dfTrain12[1:30000,],dfTrain13[1:30000,]), silent = TRUE)
+try(dfallTrain <- rbind(dfTrain1[1:30000,], dfTrain2[1:30000,],dfTrain3[1:30000,],dfTrain4[1:30000,],dfTrain5[1:30000,],dfTrain6[1:30000,],dfTrain7[1:30000,],dfTrain8[1:30000,],dfTrain9[1:30000,],dfTrain10[1:30000,],dfTrain11[1:30000,],dfTrain12[1:30000,],dfTrain13[1:30000,],dfTrain14[1:30000,]), silent = TRUE)
+try(write.csv(dfallTrain,paste(Folder,TrainingSet,Ending, suffix, sep="",collapse = NULL, recycle0 = FALSE ), row.names = FALSE), silent = TRUE)
+try(unlink(paste(Ending,suffix, sep = "")), silent = TRUE) # deletes any file that gets created if you dont need 14 sets
+try(unlink(paste(TrainingSet,suffix, sep = "")), silent = TRUE) # deletes any file that gets created if you dont need 14 sets
+try(unlink(paste(suffix, sep = "")), silent = TRUE) # deletes any file that gets created if you dont need 14 sets
