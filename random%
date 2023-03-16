@@ -1,0 +1,122 @@
+library(flowCore)
+library(dplyr) 
+
+#Which data (folder) to read?(copy  the data in one fodler e.g. BSmKate and EcoliGFP)
+this3 <- "E:/BA/V2/EX2 Cocultures/%Data/CompData with FL/t24/L"
+#set working diretory to the place were your compensated data is
+setwd(this3)
+pfiles <- list.files(path= this3,pattern=".csv$")
+CSVs <- lapply(pfiles, read.csv)
+#Use pfiles to see the order of the files.
+pfiles
+
+A <- CSVs[[1]]
+B <- CSVs[[2]]
+A <- A[30001:50000,]
+B <- B[30001:50000,]
+#Where should be the data saved.
+Folder      <- "E:/BA/V2/EX2 Cocultures/%Data/CompData with FL/L/t24/T5/"             #e.g. C:/User/Documents/Compensated_data/
+Filename1   <- "BSmKate90_Ecoli_GFP10"           #For 90% A; 10% B                            #e.g BSmKate_Ecoli_ #%            
+Filename2   <- "BSmKate80_Ecoli_GFP20"           #For 80% A; 20% B
+Filename3   <- "BSmKate70_Ecoli_GFP30"           #For 70% A; 30% B
+Filename4   <- "BSmKate60_Ecoli_GFP40"           #For 60% A; 40% B
+Filename5   <- "BSmKate50_Ecoli_GFP50"           #For 50% A; 50% B
+Filename6   <- "BSmKate40_Ecoli_GFP60"           #For 40% A; 60% B
+Filename7   <- "BSmKate30_Ecoli_GFP70"           #For 30% A; 70% B
+Filename8   <- "BSmKate20_Ecoli_GFP80"           #For 20% A; 80% B
+Filename9   <- "BSmKate10_Ecoli_GFP90"           #For 10% A; 90% B
+Filename10  <- "BSmKate0_Ecoli_GFP100"           #For 0% A; 100% B                   
+Filename11  <- "BSmKate100_Ecoli_GFP0"           #For 100% A; 0% B
+Ending      <- ""                              #e.g without-FL2-FL5
+suffix <- ".csv" # Changed if needed
+
+#Takes n random samples out of the 2 Bacteria samples
+A1 <- A %>% slice_sample(n = 9000, replace = FALSE)
+B1 <- B %>% slice_sample(n = 1000, replace = FALSE)
+dataset1 <- rbind(A1,B1)
+dataset1 <- na.omit(dataset1)
+df1 <- data.frame(dataset1)
+
+
+A2 <- A %>% slice_sample(n = 8000, replace = FALSE)
+B2 <- B %>% slice_sample(n = 2000, replace = FALSE)
+dataset2 <- rbind(A2,B2)
+dataset2 <- na.omit(dataset2)
+df2 <- data.frame(dataset2)
+
+
+A3 <- A %>% slice_sample(n = 7000, replace = FALSE)
+B3 <- B %>% slice_sample(n = 3000, replace = FALSE)
+dataset3 <- rbind(A3,B3)
+dataset3 <- na.omit(dataset3)
+df3 <- data.frame(dataset3)
+
+
+A4 <- A %>% slice_sample(n = 6000, replace = FALSE)
+B4 <- B %>% slice_sample(n = 4000, replace = FALSE)
+dataset4 <- rbind(A4,B4)
+dataset4 <- na.omit(dataset4)
+df4 <- data.frame(dataset4)
+
+
+A5 <- A %>% slice_sample(n = 5000, replace = FALSE)
+B5 <- B %>% slice_sample(n = 5000, replace = FALSE)
+dataset5 <- rbind(A5,B5)
+dataset5 <- na.omit(dataset5)
+df5 <- data.frame(dataset5)
+
+
+A6 <- A %>% slice_sample(n = 4000, replace = FALSE)
+B6 <- B %>% slice_sample(n = 6000, replace = FALSE)
+dataset6 <- rbind(A6,B6)
+dataset6 <- na.omit(dataset6)
+df6 <- data.frame(dataset6)
+
+
+A7 <- A %>% slice_sample(n = 3000, replace = FALSE)
+B7 <- B %>% slice_sample(n = 7000, replace = FALSE)
+dataset7 <- rbind(A7,B7)
+dataset7 <- na.omit(dataset7)
+df7 <- data.frame(dataset7)
+
+
+A8 <- A %>% slice_sample(n = 2000, replace = FALSE)
+B8 <- B %>% slice_sample(n = 8000, replace = FALSE)
+dataset8 <- rbind(A8,B8)
+dataset8 <- na.omit(dataset8)
+df8 <- data.frame(dataset8)
+
+
+A9 <- A %>% slice_sample(n = 1000, replace = FALSE)
+B9 <- B %>% slice_sample(n = 9000, replace = FALSE)
+dataset9 <- rbind(A9,B9)
+dataset9 <- na.omit(dataset9)
+df9 <- data.frame(dataset9)
+
+B10 <- B %>% slice_sample(n = 10000, replace = FALSE)
+dataset10 <- rbind(B10)
+dataset10 <- na.omit(dataset10)
+df10 <- data.frame(dataset10)
+
+A11 <- A %>% slice_sample(n = 10000, replace = FALSE)
+dataset11 <- rbind(A11)
+dataset11 <- na.omit(dataset11)
+df11 <- data.frame(dataset11)
+
+#Write the Data into a csv file
+dir.create(paste(Folder, sep="",collapse = NULL, recycle0 = FALSE ))
+setwd(paste(Folder))
+write.csv(df1,paste(Folder,Filename1,Ending, suffix, sep="",collapse = NULL, recycle0 = FALSE ) ,row.names = FALSE)
+write.csv(df2,paste(Folder,Filename2,Ending, suffix, sep="",collapse = NULL, recycle0 = FALSE ), row.names = FALSE)
+write.csv(df3,paste(Folder,Filename3,Ending, suffix, sep="",collapse = NULL, recycle0 = FALSE ), row.names = FALSE)
+write.csv(df4,paste(Folder,Filename4,Ending, suffix, sep="",collapse = NULL, recycle0 = FALSE ), row.names = FALSE)
+write.csv(df5,paste(Folder,Filename5,Ending, suffix, sep="",collapse = NULL, recycle0 = FALSE ), row.names = FALSE)
+write.csv(df6,paste(Folder,Filename6,Ending, suffix, sep="",collapse = NULL, recycle0 = FALSE ), row.names = FALSE)
+write.csv(df7,paste(Folder,Filename7,Ending, suffix, sep="",collapse = NULL, recycle0 = FALSE ), row.names = FALSE)
+write.csv(df8,paste(Folder,Filename8,Ending, suffix, sep="",collapse = NULL, recycle0 = FALSE ), row.names = FALSE)
+write.csv(df9,paste(Folder,Filename9,Ending, suffix, sep="",collapse = NULL, recycle0 = FALSE ), row.names = FALSE)
+write.csv(df10,paste(Folder,Filename10,Ending, suffix, sep="",collapse = NULL, recycle0 = FALSE ), row.names = FALSE)
+write.csv(df11,paste(Folder,Filename11,Ending, suffix, sep="",collapse = NULL, recycle0 = FALSE ), row.names = FALSE)
+
+rm(list = ls())
+print("DONE")
